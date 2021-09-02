@@ -91,7 +91,7 @@ RECEIVE_LOOP:
 				break RECEIVE_LOOP
 			}
 			numMessage++
-			if err := dump.PrintFromMessageToJSON(message, []byte("\n"), false, server.output); err != nil {
+			if err := dump.PrintMessageInJSON(message, false, server.output); err != nil {
 				server.logger.Panicf("failed to write JSON: %v", err)
 			}
 		case <-ticker.C:
@@ -102,9 +102,6 @@ RECEIVE_LOOP:
 	}
 
 	if numMessage > 0 {
-		if err := server.output.WriteByte('\n'); err != nil {
-			server.logger.Panicf("failed to write ending newline: %v", err)
-		}
 		server.logger.Infof("written %d log records", numMessage)
 	}
 }

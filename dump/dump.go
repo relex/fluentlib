@@ -14,7 +14,6 @@ import (
 
 // PrintFileOrDirectories prints log records from a list of files or directories of files (no nesting)
 func PrintFileOrDirectories(pathList []string) {
-	separator := []byte{'\n'}
 	bufWriter := bufio.NewWriterSize(os.Stdout, 1048576)
 	defer bufWriter.Flush()
 	for _, path := range pathList {
@@ -29,10 +28,10 @@ func PrintFileOrDirectories(pathList []string) {
 				panic(err)
 			}
 			for _, file := range fileList {
-				PrintFromFileToJSON(filepath.Join(path, file.Name()), separator, false, bufWriter)
+				PrintChunkFileInJSON(filepath.Join(path, file.Name()), false, bufWriter)
 			}
 		} else {
-			PrintFromFileToJSON(path, separator, false, bufWriter)
+			PrintChunkFileInJSON(path, false, bufWriter)
 		}
 	}
 }

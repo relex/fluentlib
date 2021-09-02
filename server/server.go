@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relex/fluentlib/dump"
 	"github.com/relex/fluentlib/protocol/forwardprotocol"
 	"github.com/relex/gotils/logger"
 	"github.com/vmihailenco/msgpack/v4"
@@ -19,7 +18,9 @@ import (
 type ForwardServer struct {
 	logger   logger.Logger
 	config   Config
-	output   *bufio.Writer
+	receiver MessageReceiver
+	onTick   func() error
+	onEnd    func()
 	listener net.Listener
 	connMap  *sync.Map
 }
@@ -35,7 +36,8 @@ type Config struct {
 }
 
 // LaunchServer creates a new server and launches it in background
-func LaunchServer(parentLogger logger.Logger, config Config, outputWriter *bufio.Writer) *ForwardServer {
+func LaunchServer(parentLogger logger.Logger, config Config, receiver MessageReceiver) *ForwardServer {
+
 	slogger := parentLogger.WithField("component", "FluentdForwardTestServer")
 	lsnr, err := net.Listen("tcp", config.Address)
 	if err != nil {
@@ -45,7 +47,7 @@ func LaunchServer(parentLogger logger.Logger, config Config, outputWriter *bufio
 	server := &ForwardServer{
 		logger:   slogger,
 		config:   config,
-		output:   outputWriter,
+		receiver: receiver,
 		listener: lsnr,
 		connMap:  new(sync.Map),
 	}
@@ -91,19 +93,20 @@ RECEIVE_LOOP:
 				break RECEIVE_LOOP
 			}
 			numMessage++
-			if err := dump.PrintMessageInJSON(message, false, server.output); err != nil {
-				server.logger.Panicf("failed to write JSON: %v", err)
+			if err := server.receiver.Accept(message); err != nil {
+				server.logger.Fatalf("failed to accept message: %v", err)
 			}
 		case <-ticker.C:
-			if err := server.output.Flush(); err != nil {
-				server.logger.Panicf("failed to flush JSON: %v", err)
+			if err := server.receiver.Tick(); err != nil {
+				server.logger.Fatalf("failed to tick: %v", err)
 			}
 		}
 	}
 
-	if numMessage > 0 {
-		server.logger.Infof("written %d log records", numMessage)
+	if err := server.receiver.End(); err != nil {
+		server.logger.Fatalf("failed to close receiver: %v", err)
 	}
+	server.logger.Infof("written %d log records", numMessage)
 }
 
 func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardprotocol.Message) {

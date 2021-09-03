@@ -1,0 +1,58 @@
+[
+[
+  "development.appServ",
+  1604303730.112,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "user.log",
+      "vhost": "foo.com"
+    },
+    "level": "info",
+    "log": "Page loaded: {\"queryDuration\":5.1, \"pageId\":81306300647, \"renderCpuTime\":0.01}"
+  }
+],
+[
+  "development.appServ",
+  1604303730.112,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "user.log",
+      "vhost": "foo.com"
+    },
+    "level": "info",
+    "log": "Read report v1:\n    queryDuration: 0.199\n    renderCpuTime: 0.14\n    userName: REDACTED\n    reportName: Test Report B\n    reportId: 78130040643\n    reportFolder: Demo\n    reportFolderId: 5030\n    reportModifiedNotSaved: true"
+  }
+],
+[
+  "development.appServ",
+  1604303730.112,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "user.log",
+      "vhost": "foo.com"
+    },
+    "level": "info",
+    "log": "View loaded:\n    queryDuration: 0.2\n    renderCpuTime: 0.144\n    userName: demoUser\n    reportName: Test Report A\n    reportId: 13306440807\n    reportFolder: Demo\n    reportFolderId: 5030\n    reportModifiedNotSaved: true"
+  }
+],
+[
+  "development.appServ",
+  1604756639.947,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "main.log",
+      "vhost": "bar.com"
+    },
+    "level": "info",
+    "log": "class=TaskRunner Created factory for type: EMAIL_TEST, factory: org.something.else.hidden.services.AsyncCallbackService@3b42121d, pool: java.util.concurrent.ThreadPoolExecutor@7a2ab862[Running, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0]"
+  }
+]
+]

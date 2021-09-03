@@ -1,0 +1,16 @@
+[
+[
+  "development.appServ",
+  1604841033.147,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "cron.log",
+      "vhost": "bar.com"
+    },
+    "level": "warn",
+    "log": "class=Contact Error generating contact: Root Exception stack trace:\njava.lang.IllegalArgumentException: Position exceeds a limit: 372\u003e77\n\tat org.glassfish.grizzly.memory.BuffersBuffer.setPosLim(BuffersBuffer.java:1732)\n\tat org.glassfish.grizzly.memory.BuffersBuffer.toStringContent(BuffersBuffer.java:1358)\n\tat org.glassfish.grizzly.http.util.BufferChunk.toString(BufferChunk.java:502)\n\tat org.glassfish.grizzly.http.util.DataChunk.toString(DataChunk.java:309)\n\tat com.ning.http.client.providers.grizzly.GrizzlyResponseHeaders.getHeaders(GrizzlyResponseHeaders.java:59)\n\tat com.ning.http.client.ResponseBase.hasResponseHeaders(ResponseBase.java:115)\n\tat org.mule.module.http.internal.request.grizzly.GrizzlyHttpClient.createMuleResponse(GrizzlyHttpClient.java:366)\n\tat org.mule.module.http.internal.request.grizzly.GrizzlyHttpClient.send(GrizzlyHttpClient.java:288)\n\tat com.mulesoft.mule.http.request.grizzly.EEGrizzlyHttpClient.send(EEGrizzlyHttpClient.java:105)\n\tat org.mule.module.http.internal.request.DefaultHttpRequester.innerProcess(DefaultHttpRequester.java:370)"
+  }
+]
+]

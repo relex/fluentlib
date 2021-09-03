@@ -1,0 +1,16 @@
+[
+[
+  "development.appServ",
+  1604316964.127,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "cron.log",
+      "vhost": "bar.com"
+    },
+    "level": "info",
+    "log": "class=DataSaver Commit changes, key: report_4942993256, user: foo.bar@notwhere.com"
+  }
+]
+]

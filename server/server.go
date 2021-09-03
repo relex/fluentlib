@@ -36,7 +36,7 @@ type Config struct {
 }
 
 // LaunchServer creates a new server and launches it in background
-func LaunchServer(parentLogger logger.Logger, config Config, receiver MessageReceiver) *ForwardServer {
+func LaunchServer(parentLogger logger.Logger, config Config, receiver MessageReceiver) (*ForwardServer, net.Addr) {
 
 	slogger := parentLogger.WithField("component", "FluentdForwardTestServer")
 	lsnr, err := net.Listen("tcp", config.Address)
@@ -52,7 +52,7 @@ func LaunchServer(parentLogger logger.Logger, config Config, receiver MessageRec
 		connMap:  new(sync.Map),
 	}
 	go server.run()
-	return server
+	return server, lsnr.Addr()
 }
 
 // Shutdown aborts the server

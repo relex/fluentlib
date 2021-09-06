@@ -6,20 +6,17 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
-	"path/filepath"
-	"regexp"
 	"testing"
 	"time"
 
 	"github.com/relex/fluentlib/dump"
 	"github.com/relex/fluentlib/protocol/forwardprotocol"
 	"github.com/relex/fluentlib/testdata"
+	"github.com/relex/fluentlib/util"
 	"github.com/relex/gotils/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmihailenco/msgpack/v4"
 )
-
-var extPattern = regexp.MustCompile(`.ff$`)
 
 func TestServerBasic(t *testing.T) {
 	recv, ch := NewEventCollector(5 * time.Second)
@@ -72,12 +69,9 @@ func TestServerBasic(t *testing.T) {
 }
 
 func TestServerFailureEmulation(t *testing.T) {
-	if testdata.IsTestGenerationMode() {
+	if util.IsTestGenerationMode() {
 		return
 	}
-	inFiles, globErr := filepath.Glob("../testdata/*.ff")
-	assert.Nil(t, globErr)
-
 	recv, ch := NewMessageCollector(5 * time.Second)
 	srv, srvAddr := LaunchServer(logger.WithField("test", t.Name()), Config{
 		Address:        "localhost:0",
@@ -90,13 +84,13 @@ func TestServerFailureEmulation(t *testing.T) {
 
 	var conn net.Conn
 
-	for _, fn := range inFiles {
+	for _, fn := range testdata.ListInputFiles(t) {
 		sampleInput, sampleErr := ioutil.ReadFile(fn)
 		assert.Nil(t, sampleErr, fn)
 
-		assert.Nil(t, send(&conn, srvAddr, "hi", sampleInput), fn)
+		assert.Nil(t, send(&conn, srvAddr.String(), "hi", sampleInput), fn)
 
-		expectedFn := extPattern.ReplaceAllString(fn, ".json")
+		expectedFn := testdata.GetOutputFilename(t, fn)
 		expected, readErr := ioutil.ReadFile(expectedFn)
 		assert.Nil(t, readErr, expectedFn)
 
@@ -113,14 +107,14 @@ func TestServerFailureEmulation(t *testing.T) {
 	srv.Shutdown()
 }
 
-func send(connHolder *net.Conn, addr net.Addr, secret string, data []byte) error {
+func send(connHolder *net.Conn, addr string, secret string, data []byte) error {
 	const retryLimit = 10
 	retry := 0
 
 	for {
 		if *connHolder == nil {
 			for {
-				conn, connErr := openConn(addr.String(), secret)
+				conn, connErr := openConn(addr, secret)
 				if connErr == nil {
 					*connHolder = conn
 					break
@@ -134,7 +128,7 @@ func send(connHolder *net.Conn, addr net.Addr, secret string, data []byte) error
 			}
 		}
 
-		(*connHolder).SetWriteDeadline(time.Now().Add(5 * time.Second))
+		_ = (*connHolder).SetWriteDeadline(time.Now().Add(5 * time.Second)) // ignore error
 		_, wrtErr := (*connHolder).Write(data)
 		if wrtErr != nil {
 			if retry >= retryLimit {
@@ -179,9 +173,8 @@ func openConn(addr string, secret string) (net.Conn, error) {
 		conn.Close()
 		if netErr != nil {
 			return nil, netErr
-		} else {
-			return nil, errors.New(reason)
 		}
+		return nil, errors.New(reason)
 	}
 
 	return conn, nil

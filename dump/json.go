@@ -14,8 +14,6 @@ import (
 	"github.com/vmihailenco/msgpack/v4"
 )
 
-var newline = []byte{'\n'}
-
 // PrintChunkFileInJSON dumps all logs in the given file in JSON format. Each log (event) is followed by a newline.
 //
 // The file must be either a Fluent-bit chunk or a Fluentd forward message

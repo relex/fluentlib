@@ -19,8 +19,6 @@ type ForwardServer struct {
 	logger   logger.Logger
 	config   Config
 	receiver MessageReceiver
-	onTick   func() error
-	onEnd    func()
 	listener net.Listener
 	connMap  *sync.Map
 }

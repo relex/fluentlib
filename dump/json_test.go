@@ -3,45 +3,37 @@ package dump
 import (
 	"bytes"
 	"io/ioutil"
-	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/relex/fluentlib/testdata"
+	"github.com/relex/fluentlib/util"
 	"github.com/stretchr/testify/assert"
 )
 
-var extPattern = regexp.MustCompile(`.ff$`)
-
 func TestGenerateExpectedOutputs(t *testing.T) {
-	if !testdata.IsTestGenerationMode() {
+	if !util.IsTestGenerationMode() {
 		return
 	}
 
 	t.Log("regenerate log outputs...")
 
-	inFiles, globErr := filepath.Glob("../testdata/*.ff")
-	assert.Nil(t, globErr)
-
-	for _, fn := range inFiles {
+	for _, fn := range testdata.ListInputFiles(t) {
 		wrt := &bytes.Buffer{}
 		assert.Nil(t, PrintChunkFileInJSON(fn, true, wrt))
 
-		expectedFn := extPattern.ReplaceAllString(fn, ".json")
+		expectedFn := testdata.GetOutputFilename(t, fn)
 		t.Logf("regenerate %s", expectedFn)
 		assert.Nil(t, ioutil.WriteFile(expectedFn, wrt.Bytes(), 0644), expectedFn)
 	}
 }
 
 func TestPrintChunkFilesInJSON(t *testing.T) {
-	if testdata.IsTestGenerationMode() {
+	if util.IsTestGenerationMode() {
 		return
 	}
-	inFiles, globErr := filepath.Glob("../testdata/*.ff")
-	assert.Nil(t, globErr)
 
-	for _, fn := range inFiles {
-		expectedFn := extPattern.ReplaceAllString(fn, ".json")
+	for _, fn := range testdata.ListInputFiles(t) {
+		expectedFn := testdata.GetOutputFilename(t, fn)
 		expected, readErr := ioutil.ReadFile(expectedFn)
 		assert.Nil(t, readErr, expectedFn)
 

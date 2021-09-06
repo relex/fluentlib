@@ -28,10 +28,13 @@ func PrintFileOrDirectories(pathList []string) {
 				panic(err)
 			}
 			for _, file := range fileList {
-				PrintChunkFileInJSON(filepath.Join(path, file.Name()), false, bufWriter)
+				fullPath := filepath.Join(path, file.Name())
+				if err := PrintChunkFileInJSON(fullPath, false, bufWriter); err != nil {
+					logger.Errorf("failed to print %s: %v", fullPath, err)
+				}
 			}
-		} else {
-			PrintChunkFileInJSON(path, false, bufWriter)
+		} else if err := PrintChunkFileInJSON(path, false, bufWriter); err != nil {
+			logger.Errorf("failed to print %s: %v", path, err)
 		}
 	}
 }

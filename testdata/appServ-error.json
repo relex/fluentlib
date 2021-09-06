@@ -1,0 +1,30 @@
+[
+[
+  "development.appServ",
+  1604698264.191,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "main.log",
+      "vhost": "bar.com"
+    },
+    "level": "error",
+    "log": "class=BackupManager Unable to open /var/backup/appServ/bar: permission denied"
+  }
+],
+[
+  "development.appServ",
+  1604756639.962,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "main.log",
+      "vhost": "bar.com"
+    },
+    "level": "error",
+    "log": "class=TaskRunnerSupervisor fail to create: Exception in thread \"main\" java.lang.RuntimeException: A test exception\n  at com.stackify.stacktrace.StackTraceExample.methodB(StackTraceExample.java:13)\n  at com.stackify.stacktrace.StackTraceExample.methodA(StackTraceExample.java:9)\n  at com.stackify.stacktrace.StackTraceExample.main(StackTraceExample.java:5)"
+  }
+]
+]

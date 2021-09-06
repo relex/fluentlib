@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,10 +25,7 @@ var serverCmd = serverCmdState{
 }
 
 func (cmd *serverCmdState) Run(args []string) {
-	outwriter := bufio.NewWriter(os.Stdout)
-	defer outwriter.Flush()
-
-	testServer := server.LaunchServer(logger.Root(), cmd.Config, outwriter)
+	srv, _ := server.LaunchServer(logger.Root(), cmd.Config, server.NewMessageWriter(os.Stdout))
 
 	sigChan := make(chan os.Signal, 10)
 	signal.Notify(sigChan, syscall.SIGINT)
@@ -38,6 +34,6 @@ func (cmd *serverCmdState) Run(args []string) {
 	s := <-sigChan
 	logger.Infof("server received %v, stopping", s)
 
-	testServer.Shutdown()
+	srv.Shutdown()
 	logger.Info("server stopped")
 }

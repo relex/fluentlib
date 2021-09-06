@@ -1,0 +1,30 @@
+[
+[
+  "development.appServ",
+  1604308628.001,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "access.log",
+      "vhost": "bar.com"
+    },
+    "level": "warn",
+    "log": "POST \"/data/query\", status=200, remote_ip=0.0.0.1, user_id=123, duration=1.339, view=0.001, params={\"glossary\":{\"title\":\"example glossary\",\"GlossDiv\":{\"title\":\"S\",\"GlossList\":{\"Glo ... (cut)"
+  }
+],
+[
+  "development.appServ",
+  1604310474.003,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "access.log",
+      "vhost": "bar.com"
+    },
+    "level": "warn",
+    "log": "PUT \"/notes/1\", status=200, remote_ip=1.2.3.4, user_id=123, duration=0.862, view=0.261, params=[{\"_id\":\"60b0ae514e4f7e517acca584\",\"index\":0,\"guid\":\"b9a2719a-d32a-48a8-9026-d0116556 ... (cut)"
+  }
+]
+]

@@ -6,6 +6,7 @@ require (
 	github.com/prometheus/common v0.23.0 // indirect
 	github.com/relex/gotils v0.0.0-20210507093346-88c86b7c95a8
 	github.com/spf13/cobra v1.1.3
+	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect

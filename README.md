@@ -20,11 +20,13 @@ fluentlibtool server -f 0 -x 0 -n 0 output.json
 
 ## Library
 
-`protocol/fluentbitchunk` can decode Fluent Bit's [internal chunk (buffer) files](https://docs.fluentbit.io/manual/administration/buffering-and-storage).
-
-`protocol/forwardprotocol` provides definitions of [Fluentd Forward Protocol v1](https://github.com/fluent/fluentd/wiki/Forward-Protocol-Specification-v1) in Go, as well as utility functions for handshaking and decoding.
+- `protocol/fluentbitchunk` can decode Fluent Bit's [internal chunk (buffer) files](https://docs.fluentbit.io/manual/administration/buffering-and-storage).
+- `protocol/forwardprotocol` provides definitions of [Fluentd Forward Protocol v1](https://github.com/fluent/fluentd/wiki/Forward-Protocol-Specification-v1) in Go, as well as utility functions for handshaking and decoding.
+- `server` provides a fake Fluentd server that can be used for testing
 
 The library part is intended for verification and functions here are NOT optimized for performance.
+
+See `server/server_test.go:TestServerBasic` for basic examples of a client
 
 ## Build
 

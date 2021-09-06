@@ -1,0 +1,16 @@
+[
+[
+  "development.appServ",
+  1604316964.127,
+  {
+    "environment": {
+      "app": "appServ",
+      "host": "basic-2",
+      "source": "auth.log",
+      "vhost": "bar.com"
+    },
+    "level": "fatal",
+    "log": "Error connecting to auth provider at 2020-11-02T13:36:04.116+02:00."
+  }
+]
+]

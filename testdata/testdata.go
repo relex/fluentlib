@@ -2,7 +2,6 @@
 package testdata
 
 import (
-	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -19,18 +18,14 @@ func init() {
 }
 
 func ListInputFiles(t *testing.T) []string {
-	pwd, pwdErr := os.Getwd()
-	if pwdErr != nil {
-		t.Fatal("failed to get current dir: %v", pwdErr)
-	}
 	pattern := absoluteDirPath + "/*.ff"
 
 	inFiles, globErr := filepath.Glob(pattern)
 	if globErr != nil {
-		t.Fatal("failed to scan test files at path %s: %v", pwd+"/"+pattern, globErr)
+		t.Fatalf("failed to scan test files at path %s: %v", pattern, globErr)
 	}
 	if len(inFiles) == 0 {
-		t.Fatal("failed to find test files at path %s: no match", pwd+"/"+pattern)
+		t.Fatalf("failed to find test files at path %s: no match", pattern)
 	}
 	return inFiles
 }

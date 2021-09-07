@@ -1,4 +1,5 @@
 AUTO_BUILD_VERSION ?= dev
+GOPATH := $(shell go env GOPATH)
 export LINT_EXHAUSTIVESTRUCT=Y
 
 build: BUILD/fluentlibtool

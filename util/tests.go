@@ -4,6 +4,7 @@ import (
 	"os"
 )
 
+// IsTestGenerationMode returns true if we're in test-gen mode while running tests
 func IsTestGenerationMode() bool {
 	return containsString(os.Args, "gen")
 }

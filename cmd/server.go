@@ -15,12 +15,14 @@ type serverCmdState struct {
 
 var serverCmd = serverCmdState{
 	Config: server.Config{
-		Address:        "localhost:24224",
-		Secret:         "guess",
-		TLS:            true,
-		RandomAuthFail: 0.0,
-		RandomConnKill: 0.0,
-		RandomNoAnswer: 0.0,
+		Address:           "localhost:24224",
+		Secret:            "guess",
+		TLS:               true,
+		RandomNoHandshake: 0.0,
+		RandomFailAuth:    0.0,
+		RandomNoReceiving: 0.0,
+		RandomNoResponse:  0.0,
+		RandomKillConn:    0.0,
 	},
 }
 

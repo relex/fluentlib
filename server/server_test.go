@@ -74,12 +74,12 @@ func TestServerFailureEmulation(t *testing.T) {
 	}
 	recv, ch := NewMessageCollector(5 * time.Second)
 	srv, srvAddr := LaunchServer(logger.WithField("test", t.Name()), Config{
-		Address:        "localhost:0",
-		Secret:         "hi",
-		TLS:            true,
-		RandomAuthFail: 0.6,
-		RandomConnKill: 0.2,
-		RandomNoAnswer: 0.0, // timeout would block tests for too long
+		Address:          "localhost:0",
+		Secret:           "hi",
+		TLS:              true,
+		RandomFailAuth:   0.6,
+		RandomKillConn:   0.2,
+		RandomNoResponse: 0.0, // timeout would block tests for too long
 	}, recv)
 
 	var conn net.Conn

@@ -25,12 +25,14 @@ type ForwardServer struct {
 
 // Config contains configuration for test server
 type Config struct {
-	Address        string  `help:"Address to listen requests"`
-	Secret         string  `help:"The secret key for communication with clients if TLS is enabled"`
-	TLS            bool    `help:"Enable TLS or not"`
-	RandomAuthFail float64 `help:"Chance to fail authentication, from 0.0 to 1.0"`
-	RandomConnKill float64 `help:"Chance to kill connection after receiving a request, from 0.0 to 1.0"`
-	RandomNoAnswer float64 `help:"Chance to stop responding after receiving a request (but continue to receive logs)"`
+	Address           string  `help:"Address to listen requests"`
+	Secret            string  `help:"The secret key for communication with clients if TLS is enabled"`
+	TLS               bool    `help:"Enable TLS or not"`
+	RandomNoHandshake float64 `help:"Chance to fail handshaking, from 0.0 to 1.0"`
+	RandomFailAuth    float64 `help:"Chance to fail authentication, from 0.0 to 1.0"`
+	RandomNoReceiving float64 `help:"Chance to stop receiving logs after handshaking, from 0.0 to 1.0"`
+	RandomNoResponse  float64 `help:"Chance to stop responding after a request but continue to receive logs, from 0.0 to 1.0"`
+	RandomKillConn    float64 `help:"Chance to kill connection after receiving a request, from 0.0 to 1.0"`
 }
 
 // LaunchServer creates a new server and launches it in background
@@ -124,6 +126,12 @@ func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardpro
 		defer conn.Close()
 	}
 
+	if r := rand.Float64(); r < server.config.RandomNoHandshake {
+		clogger.Info("stop handshaking by random chance: ", r)
+		time.Sleep(60 * time.Second) // keep connection open until client timeout
+		return
+	}
+
 	authSuccess, err := forwardprotocol.DoServerHandshake(conn, server.config.Secret, defs.ForwarderHandshakeTimeout, server.onAuth)
 	if err != nil {
 		clogger.Warn("handshake error: ", err)
@@ -142,6 +150,11 @@ func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardpro
 	decoder := msgpack.NewDecoder(conn)
 	stopAck := false
 	for {
+		if r := rand.Float64(); r < server.config.RandomNoReceiving {
+			clogger.Info("stop reading by random chance: ", r)
+			time.Sleep(30 * time.Second)
+			continue
+		}
 		if err := conn.SetReadDeadline(time.Now().Add(defs.ForwarderBatchSendTimeoutBase)); err != nil {
 			clogger.Error("unable to set read timeout: ", err)
 			return
@@ -151,8 +164,8 @@ func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardpro
 			clogger.Error("unable to read: ", err)
 			return
 		}
-		if r := rand.Float64(); r < server.config.RandomConnKill {
-			clogger.Infof("kill connection (random %f)", r)
+		if r := rand.Float64(); r < server.config.RandomKillConn {
+			clogger.Info("kill connection by random chance: ", r)
 			return
 		}
 		clogger.Debugf("received msg: tag=%s, entries=%d, chunkID=%s", message.Tag, len(message.Entries), message.Option.Chunk)
@@ -163,9 +176,9 @@ func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardpro
 		if len(message.Option.Chunk) > 0 {
 			ackChannel <- message.Option.Chunk
 		}
-		if r := rand.Float64(); r < server.config.RandomNoAnswer {
+		if r := rand.Float64(); r < server.config.RandomNoResponse {
 			// simulate invalid server response to client
-			clogger.Infof("stop server to client response (random %f)", r)
+			clogger.Info("stop responding by random chance: ", r)
 			stopAck = true
 		}
 	}
@@ -196,8 +209,8 @@ func (server *ForwardServer) runAcknowledger(ackChannel chan string, conn net.Co
 }
 
 func (server *ForwardServer) onAuth(hostname, username, password string) (bool, string) {
-	if r := rand.Float64(); r < server.config.RandomAuthFail {
-		logger.Infof("reject client auth  (random %f)", r)
+	if r := rand.Float64(); r < server.config.RandomFailAuth {
+		logger.Info("reject client auth by random chance: ", r)
 		return false, "bad luck"
 	}
 	return true, ""

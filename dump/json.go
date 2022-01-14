@@ -29,7 +29,7 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 		lastI := -1
 		iterError := fluentbitchunk.IterateRecords(flbPayload, func(event forwardprotocol.EventEntry) error {
 			lastI++
-			return printEventInJSON(event, flbTag, indented, writer, lastI == 0)
+			return PrintEventInJSON(event, flbTag, indented, writer, lastI == 0)
 		})
 		if iterError != nil {
 			return fmt.Errorf("corrupted fluent-bit chunk file %s on the %dth record: %w", path, lastI, iterError)
@@ -52,7 +52,7 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 // PrintMessageInJSON dumps all logs in the given message in JSON format. Each log (event) is followed by a newline.
 func PrintMessageInJSON(message forwardprotocol.Message, indented bool, writer io.Writer) error {
 	for i, event := range message.Entries {
-		if err := printEventInJSON(event, message.Tag, indented, writer, i == 0); err != nil {
+		if err := PrintEventInJSON(event, message.Tag, indented, writer, i == 0); err != nil {
 			_, _ = writer.Write([]byte("\n]\n")) // ignore error
 			return err
 		}
@@ -63,7 +63,8 @@ func PrintMessageInJSON(message forwardprotocol.Message, indented bool, writer i
 	return nil
 }
 
-func printEventInJSON(event forwardprotocol.EventEntry, tag string, indented bool, writer io.Writer, isFirst bool) error {
+// PrintEventInJSON dump a single record in JSON format
+func PrintEventInJSON(event forwardprotocol.EventEntry, tag string, indented bool, writer io.Writer, isFirst bool) error {
 	if isFirst {
 		if _, werr := writer.Write([]byte("[\n")); werr != nil {
 			return fmt.Errorf("failed to print leading bracket: %w", werr)

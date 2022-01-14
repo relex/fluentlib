@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/relex/fluentlib/server"
+	"github.com/relex/fluentlib/server/receivers"
 	"github.com/relex/gotils/logger"
 )
 
@@ -18,6 +19,9 @@ var serverCmd = serverCmdState{
 		Address:           "localhost:24224",
 		Secret:            "guess",
 		TLS:               true,
+		SplitOutputKeys:   []string{"app", "level", "pnum"},
+		SplitOutputPath:   "",
+		SplitStrictMode:   false,
 		RandomNoHandshake: 0.0,
 		RandomFailAuth:    0.0,
 		RandomNoReceiving: 0.0,
@@ -27,7 +31,23 @@ var serverCmd = serverCmdState{
 }
 
 func (cmd *serverCmdState) Run(args []string) {
-	srv, _ := server.LaunchServer(logger.Root(), cmd.Config, server.NewMessageWriter(os.Stdout))
+	var receiver receivers.Receiver
+	if len(serverCmd.SplitOutputPath) > 0 {
+		if err := receivers.VerifySplittingFilePath(serverCmd.SplitOutputPath); err != nil {
+			logger.Fatal("invalid split_output_path: ", err.Error())
+		}
+
+		logger.WithFields(logger.Fields{
+			"keys":   serverCmd.SplitOutputKeys,
+			"path":   serverCmd.SplitOutputPath,
+			"strict": serverCmd.SplitStrictMode,
+		}).Infof("use split output")
+		receiver = receivers.NewSplittingFileWriter(serverCmd.SplitOutputKeys, serverCmd.SplitOutputPath, serverCmd.SplitStrictMode)
+	} else {
+		logger.Infof("use message output")
+		receiver = receivers.NewMessageWriter(os.Stdout)
+	}
+	srv, _ := server.LaunchServer(logger.Root(), cmd.Config, receiver)
 
 	sigChan := make(chan os.Signal, 10)
 	signal.Notify(sigChan, syscall.SIGINT)
@@ -38,4 +58,5 @@ func (cmd *serverCmdState) Run(args []string) {
 
 	srv.Shutdown()
 	logger.Info("server stopped")
+	logger.Exit(0)
 }

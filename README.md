@@ -10,10 +10,14 @@ Dump contents of Fluentd Forward messages (Forward, PackedForward, CompressedPac
 fluentlibtool dump [filepath]...
 ```
 
-Run a fake Fluentd server to print all logs in JSON to file or stdout (pass "-" as filename)
+Run a fake Fluentd server to print logs in JSON to stdout or one file per each tag + key fields
 
 ```bash
-fluentlibtool server -f 0 -x 0 -n 0 output.json
+fluentlibtool server -f 0 -x 0 -n 0.5
+```
+
+```bash
+fluentlibtool server --split_output_keys=environment/class,level --split_output_path=/tmp/%s.json --split_strict_mode=true
 ```
 
 (`-f`, `-x`, and `-n` are to simulate network errors etc, use `fluentlibtool help server` to get help)

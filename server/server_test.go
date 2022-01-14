@@ -11,6 +11,7 @@ import (
 
 	"github.com/relex/fluentlib/dump"
 	"github.com/relex/fluentlib/protocol/forwardprotocol"
+	"github.com/relex/fluentlib/server/receivers"
 	"github.com/relex/fluentlib/testdata"
 	"github.com/relex/fluentlib/util"
 	"github.com/relex/gotils/logger"
@@ -19,7 +20,7 @@ import (
 )
 
 func TestServerBasic(t *testing.T) {
-	recv, ch := NewEventCollector(5 * time.Second)
+	recv, ch := receivers.NewEventCollector(5 * time.Second)
 	srv, srvAddr := LaunchServer(logger.WithField("test", t.Name()), Config{
 		Address: "localhost:0",
 		Secret:  "hi",
@@ -72,7 +73,7 @@ func TestServerFailureEmulation(t *testing.T) {
 	if util.IsTestGenerationMode() {
 		return
 	}
-	recv, ch := NewMessageCollector(5 * time.Second)
+	recv, ch := receivers.NewMessageCollector(5 * time.Second)
 	srv, srvAddr := LaunchServer(logger.WithField("test", t.Name()), Config{
 		Address:          "localhost:0",
 		Secret:           "hi",

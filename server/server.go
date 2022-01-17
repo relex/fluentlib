@@ -7,9 +7,12 @@ import (
 	"math/rand"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/relex/fluentlib/protocol/forwardprotocol"
+	"github.com/relex/fluentlib/server/receivers"
+	"github.com/relex/gotils/channels"
 	"github.com/relex/gotils/logger"
 	"github.com/vmihailenco/msgpack/v4"
 )
@@ -18,25 +21,31 @@ import (
 type ForwardServer struct {
 	logger   logger.Logger
 	config   Config
-	receiver MessageReceiver
+	receiver receivers.Receiver
 	listener net.Listener
 	connMap  *sync.Map
+	wrtEnded channels.Awaitable
 }
 
 // Config contains configuration for test server
 type Config struct {
-	Address           string  `help:"Address to listen requests"`
-	Secret            string  `help:"The secret key for communication with clients if TLS is enabled"`
-	TLS               bool    `help:"Enable TLS or not"`
-	RandomNoHandshake float64 `help:"Chance to fail handshaking, from 0.0 to 1.0"`
-	RandomFailAuth    float64 `help:"Chance to fail authentication, from 0.0 to 1.0"`
-	RandomNoReceiving float64 `help:"Chance to stop receiving logs after handshaking, from 0.0 to 1.0"`
-	RandomNoResponse  float64 `help:"Chance to stop responding after a request but continue to receive logs, from 0.0 to 1.0"`
-	RandomKillConn    float64 `help:"Chance to kill connection after receiving a request, from 0.0 to 1.0"`
+	Address           string   `help:"Address to listen requests"`
+	Secret            string   `help:"The secret key for communication with clients if TLS is enabled"`
+	TLS               bool     `help:"Enable TLS or not"`
+	SplitOutputKeys   []string `help:"List of key fields used to split output by each key set. Only used if split_output_path is supplied."`
+	SplitOutputPath   string   `help:"File path pattern for per key-set output. Must supply '%s' in the path (to be filled as 'tag-key1,key2,..')."`
+	SplitStrictMode   bool     `help:"Check whether client connection sends logs of mixed tags or key fields. Set to true for slog-agent and false for fluent-bit-agent."`
+	RandomNoHandshake float64  `help:"Chance to fail handshaking, from 0.0 to 1.0"`
+	RandomFailAuth    float64  `help:"Chance to fail authentication, from 0.0 to 1.0"`
+	RandomNoReceiving float64  `help:"Chance to stop receiving logs after handshaking, from 0.0 to 1.0"`
+	RandomNoResponse  float64  `help:"Chance to stop responding after a request but continue to receive logs, from 0.0 to 1.0"`
+	RandomKillConn    float64  `help:"Chance to kill connection after receiving a request, from 0.0 to 1.0"`
 }
 
+var lastConnectionID int64
+
 // LaunchServer creates a new server and launches it in background
-func LaunchServer(parentLogger logger.Logger, config Config, receiver MessageReceiver) (*ForwardServer, net.Addr) {
+func LaunchServer(parentLogger logger.Logger, config Config, receiver receivers.Receiver) (*ForwardServer, net.Addr) {
 
 	slogger := parentLogger.WithField("component", "FluentdForwardTestServer")
 	lsnr, err := net.Listen("tcp", config.Address)
@@ -65,11 +74,15 @@ func (server *ForwardServer) Shutdown() {
 		conn.Close()
 		return true
 	})
+	server.wrtEnded.Wait(defs.WriterEndingTimeout)
 }
 
 func (server *ForwardServer) run() {
-	outputChan := make(chan forwardprotocol.Message, 1000)
-	go server.runWriter(outputChan)
+	outputChan, wrtEnded := launchWriter(server.logger, server.receiver)
+	server.wrtEnded = wrtEnded
+
+	defer close(outputChan)
+
 	for {
 		conn, err := server.listener.Accept()
 		if err != nil {
@@ -81,37 +94,14 @@ func (server *ForwardServer) run() {
 	}
 }
 
-func (server *ForwardServer) runWriter(outputChan <-chan forwardprotocol.Message) {
-	numMessage := 0
-	ticker := time.NewTicker(500 * time.Millisecond)
-
-RECEIVE_LOOP:
-	for {
-		select {
-		case message, ok := <-outputChan:
-			if !ok {
-				break RECEIVE_LOOP
-			}
-			numMessage++
-			if err := server.receiver.Accept(message); err != nil {
-				server.logger.Fatalf("failed to accept message: %v", err)
-			}
-		case <-ticker.C:
-			if err := server.receiver.Tick(); err != nil {
-				server.logger.Fatalf("failed to tick: %v", err)
-			}
-		}
-	}
-
-	if err := server.receiver.End(); err != nil {
-		server.logger.Fatalf("failed to close receiver: %v", err)
-	}
-	server.logger.Infof("written %d log records", numMessage)
-}
-
-func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardprotocol.Message) {
+func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- receivers.ClientMessage) {
 	addr := conn.RemoteAddr().String()
-	clogger := server.logger.WithField("remote", conn.RemoteAddr())
+	connID := atomic.AddInt64(&lastConnectionID, 1)
+	clogger := server.logger.WithFields(logger.Fields{
+		"connID": connID,
+		"remote": conn.RemoteAddr(),
+	})
+
 	defer conn.Close()
 	server.connMap.Store(addr, conn)
 	defer server.connMap.Delete(addr)
@@ -169,7 +159,10 @@ func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- forwardpro
 			return
 		}
 		clogger.Debugf("received msg: tag=%s, entries=%d, chunkID=%s", message.Tag, len(message.Entries), message.Option.Chunk)
-		outputChan <- message
+		outputChan <- receivers.ClientMessage{
+			ConnectionID: connID,
+			Message:      message,
+		}
 		if stopAck {
 			continue
 		}

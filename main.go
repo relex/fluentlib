@@ -14,4 +14,6 @@ func main() {
 	logger.Infof("version: %s", version)
 
 	cmd.Execute()
+
+	logger.Exit(0)
 }

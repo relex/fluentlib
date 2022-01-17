@@ -1,5 +1,10 @@
 package forwardprotocol
 
+import (
+	"fmt"
+	"reflect"
+)
+
 // MessageMode determines the format in which Message.Entries are serialized
 // The mode is to be detected by upstream, not itself specified during communication
 type MessageMode string
@@ -16,7 +21,8 @@ const (
 	ModeCompressedPackedForward MessageMode = "CompressedPackedForward"
 )
 
-// Message is the request msg to forward a chunk of logs
+// Message represents a request to forward a batch of log events to Fluentd
+//
 // The struct is not used directly for encoding but serves as a reference
 type Message struct {
 	_msgpack struct{}        `msgpack:",asArray"`
@@ -26,6 +32,7 @@ type Message struct {
 }
 
 // EventEntry represents a single log record in forward messages
+//
 // The struct is not used directly for encoding but serves as a reference
 type EventEntry struct {
 	_msgpack struct{}               `msgpack:",asArray"`
@@ -53,4 +60,34 @@ func init() {
 	unusedStruct(Message{}._msgpack)
 	unusedStruct(EventEntry{}._msgpack)
 	unusedStruct(TransportOption{}._msgpack)
+}
+
+// ResolvePath attempts to fetch field by the given path, represented as one or more map keys
+//
+// Supports nested maps - the type should be map[string]interface{}
+func (e *EventEntry) ResolvePath(path ...string) (interface{}, error) {
+	if len(path) == 0 {
+		return nil, fmt.Errorf("path must contain at least one step")
+	}
+
+	parent := e.Record
+	for step := range path {
+		value, exists := parent[path[step]]
+		if !exists {
+			return nil, fmt.Errorf("failed to resolve %v at step %d: '%s' does not exist", path, step+1, path[step])
+		}
+
+		if step == len(path)-1 {
+			return value, nil
+		}
+
+		if m, isMap := value.(map[string]interface{}); isMap {
+			parent = m
+			continue
+		}
+		return nil, fmt.Errorf("failed to resolve %v at step %d: '%s' is not a map[string]interface{}: type=%s value=%v",
+			path, step+1, path[step], reflect.ValueOf(value).Type().Name(), value)
+	}
+
+	panic("unreachable code")
 }

@@ -36,7 +36,6 @@ func (cmd *serverCmdState) Run(args []string) {
 		if err := receivers.VerifySplittingFilePath(serverCmd.SplitOutputPath); err != nil {
 			logger.Fatal("invalid split_output_path: ", err.Error())
 		}
-
 		logger.WithFields(logger.Fields{
 			"keys":   serverCmd.SplitOutputKeys,
 			"path":   serverCmd.SplitOutputPath,
@@ -47,6 +46,7 @@ func (cmd *serverCmdState) Run(args []string) {
 		logger.Infof("use message output")
 		receiver = receivers.NewMessageWriter(os.Stdout)
 	}
+	
 	srv, _ := server.LaunchServer(logger.Root(), cmd.Config, receiver)
 
 	sigChan := make(chan os.Signal, 10)

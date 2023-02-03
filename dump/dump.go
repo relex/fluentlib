@@ -23,18 +23,22 @@ func PrintFileOrDirectories(pathList []string) {
 			continue
 		}
 		if stat.IsDir() {
-			fileList, err := ioutil.ReadDir(path)
-			if err != nil {
-				panic(err)
-			}
-			for _, file := range fileList {
-				fullPath := filepath.Join(path, file.Name())
-				if err := PrintChunkFileInJSON(fullPath, false, bufWriter); err != nil {
-					logger.Errorf("failed to print %s: %v", fullPath, err)
-				}
-			}
+			printChunkFilesInDir(path, bufWriter)
 		} else if err := PrintChunkFileInJSON(path, false, bufWriter); err != nil {
 			logger.Errorf("failed to print %s: %v", path, err)
+		}
+	}
+}
+
+func printChunkFilesInDir(path string, bufWriter *bufio.Writer) {
+	fileList, err := ioutil.ReadDir(path)
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range fileList {
+		fullPath := filepath.Join(path, file.Name())
+		if err := PrintChunkFileInJSON(fullPath, false, bufWriter); err != nil {
+			logger.Errorf("failed to print %s: %v", fullPath, err)
 		}
 	}
 }

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
+	"strings"
 
 	"github.com/relex/fluentlib/protocol/fluentbitchunk"
 	"github.com/relex/fluentlib/protocol/forwardprotocol"
@@ -23,8 +25,12 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 		return fmt.Errorf("error opening %s: %w", path, ioErr)
 	}
 
-	// For Fluent-Bit chunk file
-	if flbTag, flbPayload, flbErr := fluentbitchunk.ParseChunk(fileData); flbErr == nil {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".flb":
+		flbTag, flbPayload, flbErr := fluentbitchunk.ParseChunk(fileData)
+		if flbErr != nil {
+			return fmt.Errorf("failed to parse fluent-bit chunk file %s: %w", path, flbErr)
+		}
 		logger.Infof("parsed fluent-bit chunk file: %s, tag=%s", path, flbTag)
 		lastI := -1
 		iterError := fluentbitchunk.IterateRecords(flbPayload, func(event forwardprotocol.EventEntry) error {
@@ -35,16 +41,36 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 			return fmt.Errorf("corrupted fluent-bit chunk file %s on the %dth record: %w", path, lastI, iterError)
 		}
 		return nil
-	}
-
-	// For Fluentd forward message
-	reader := bytes.NewReader(fileData)
-	var message forwardprotocol.Message
-	if decErr := msgpack.NewDecoder(reader).Decode(&message); decErr != nil {
-		return fmt.Errorf("failed to decode forward message file %s: %w", path, decErr)
-	}
-	if prtError := PrintMessageInJSON(message, indented, writer); prtError != nil {
-		return fmt.Errorf("failed to print %s: %w", path, prtError)
+	case ".ff":
+		var message forwardprotocol.Message
+		if decErr := msgpack.NewDecoder(bytes.NewReader(fileData)).Decode(&message); decErr != nil {
+			return fmt.Errorf("failed to decode forward message file %s: %w", path, decErr)
+		}
+		if prtError := PrintMessageInJSON(message, indented, writer); prtError != nil {
+			return fmt.Errorf("failed to print %s: %w", path, prtError)
+		}
+	default:
+		genericReader := bytes.NewReader(fileData)
+		genericDecoder := msgpack.NewDecoder(genericReader)
+		for {
+			nextItem, nextErr := genericDecoder.DecodeInterface()
+			if nextErr != nil {
+				return fmt.Errorf("failed to decode msgpack at %d: %w", genericReader.Size() - int64(genericReader.Len()), nextErr)
+			}
+			var jbin []byte
+			var jerr error
+			if indented {
+				jbin, jerr = json.MarshalIndent(nextItem, "", "  ")
+			} else {
+				jbin, jerr = json.Marshal(nextItem)
+			}
+			if jerr != nil {
+				return fmt.Errorf("failed to format JSON: %w", jerr)
+			}
+			_, _ = writer.Write(jbin)
+			_, _ = writer.Write([]byte("\n"))
+			logger.Debugf("completed decoding at position %d", genericReader.Size() - int64(genericReader.Len()))
+		}
 	}
 	return nil
 }

@@ -72,11 +72,8 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 			if jerr != nil {
 				return fmt.Errorf("failed to format JSON: %w", jerr)
 			}
-			if _, err := writer.Write(jbin); err != nil {
+			if _, err := writer.Write(append(jbin, '\n')); err != nil {
 				return fmt.Errorf("failed to write output: %w", err)
-			}
-			if _, err := writer.Write([]byte("\n")); err != nil {
-				return fmt.Errorf("failed to write newline: %w", err)
 			}
 			logger.Debugf("completed decoding %s at position %d", path, decodedPos)
 		}

@@ -5,40 +5,46 @@ package dump
 
 import (
 	"bufio"
-	"io/ioutil"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/relex/gotils/logger"
 )
 
-// PrintFileOrDirectories prints log records from a list of files or directories of files (no nesting)
-func PrintFileOrDirectories(pathList []string) {
+// PrintFileOrDirectories prints log records from a list of files or directories of files
+func PrintFileOrDirectories(pathList []string, ignoreError bool) error {
 	bufWriter := bufio.NewWriterSize(os.Stdout, 1048576)
 	defer bufWriter.Flush()
 	for _, path := range pathList {
-		stat, statErr := os.Stat(path)
-		if statErr != nil {
-			logger.Errorf("input '%s' is not accessible: %v", path, statErr)
-			continue
-		}
-		if stat.IsDir() {
-			printChunkFilesInDir(path, bufWriter)
-		} else if err := PrintChunkFileInJSON(path, false, bufWriter); err != nil {
-			logger.Errorf("failed to print %s: %v", path, err)
+		if err := printChunkFilesInDir(path, bufWriter, ignoreError); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
-func printChunkFilesInDir(path string, bufWriter *bufio.Writer) {
-	fileList, err := ioutil.ReadDir(path)
-	if err != nil {
-		panic(err)
-	}
-	for _, file := range fileList {
-		fullPath := filepath.Join(path, file.Name())
-		if err := PrintChunkFileInJSON(fullPath, false, bufWriter); err != nil {
-			logger.Errorf("failed to print %s: %v", fullPath, err)
+func printChunkFilesInDir(root string, bufWriter *bufio.Writer, ignoreError bool) error {
+	return filepath.Walk(root, func(path string, info fs.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			if ignoreError {
+				logger.Errorf("failed to walk %s: %v", path, walkErr)
+				return nil
+			} else {
+				return walkErr
+			}
 		}
-	}
+		if info.IsDir() {
+			return nil
+		}
+		if decErr := PrintChunkFileInJSON(path, false, bufWriter); decErr != nil {
+			if ignoreError {
+				logger.Errorf("failed to print %s: %v", path, decErr)
+			} else {
+				return fmt.Errorf("failed to print %s: %w", path, decErr)
+			}
+		}
+		return nil
+	})
 }

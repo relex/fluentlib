@@ -3,6 +3,7 @@ package dump
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -54,8 +55,12 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 		genericDecoder := msgpack.NewDecoder(genericReader)
 		for {
 			nextItem, nextErr := genericDecoder.DecodeInterface()
+			decodedPos := genericReader.Size() - int64(genericReader.Len())
 			if nextErr != nil {
-				return fmt.Errorf("failed to decode msgpack at %d: %w", genericReader.Size() - int64(genericReader.Len()), nextErr)
+				if errors.Is(nextErr, io.EOF) {
+					break
+				}
+				return fmt.Errorf("failed to decode msgpack at %s:%d: %w", path, decodedPos, nextErr)
 			}
 			var jbin []byte
 			var jerr error
@@ -67,9 +72,13 @@ func PrintChunkFileInJSON(path string, indented bool, writer io.Writer) error {
 			if jerr != nil {
 				return fmt.Errorf("failed to format JSON: %w", jerr)
 			}
-			_, _ = writer.Write(jbin)
-			_, _ = writer.Write([]byte("\n"))
-			logger.Debugf("completed decoding at position %d", genericReader.Size() - int64(genericReader.Len()))
+			if _, err := writer.Write(jbin); err != nil {
+				return fmt.Errorf("failed to write output: %w", err)
+			}
+			if _, err := writer.Write([]byte("\n")); err != nil {
+				return fmt.Errorf("failed to write newline: %w", err)
+			}
+			logger.Debugf("completed decoding %s at position %d", path, decodedPos)
 		}
 	}
 	return nil

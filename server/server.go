@@ -30,7 +30,7 @@ type ForwardServer struct {
 // Config contains configuration for test server
 type Config struct {
 	Address           string   `help:"Address to listen requests"`
-	Secret            string   `help:"The secret key for communication with clients if TLS is enabled"`
+	Secret            string   `help:"The password for client authentication if provided"`
 	TLS               bool     `help:"Enable TLS or not"`
 	SplitOutputKeys   []string `help:"List of key fields used to split output by each key set. Only used if split_output_path is supplied."`
 	SplitOutputPath   string   `help:"File path pattern for per key-set output. Must supply '%s' in the path (to be filled as 'tag-key1,key2,..')."`
@@ -122,16 +122,18 @@ func (server *ForwardServer) runConn(conn net.Conn, outputChan chan<- receivers.
 		return
 	}
 
-	authSuccess, err := forwardprotocol.DoServerHandshake(conn, server.config.Secret, defs.ForwarderHandshakeTimeout, server.onAuth)
-	if err != nil {
-		clogger.Warn("handshake error: ", err)
-		return
+	if len(server.config.Secret) > 0 {
+		authSuccess, err := forwardprotocol.DoServerHandshake(conn, server.config.Secret, defs.ForwarderHandshakeTimeout, server.onAuth)
+		if err != nil {
+			clogger.Warn("handshake error: ", err)
+			return
+		}
+		if !authSuccess {
+			clogger.Warn("client auth failed")
+			return
+		}
+		clogger.Debug("handshaked")
 	}
-	if !authSuccess {
-		clogger.Warn("client auth failed")
-		return
-	}
-	clogger.Debug("handshaked")
 
 	ackChannel := make(chan string, 1000)
 	defer close(ackChannel)
